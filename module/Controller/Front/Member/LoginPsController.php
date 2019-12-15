@@ -37,6 +37,7 @@ class LoginPsController extends \Bundle\Controller\Front\Member\LoginPsControlle
 {
     public function index()
     {
+        $isNewMember = false;
         $isSSO = Request::post()->get("isSSO", 'N');
         if($isSSO == 'N'){
             parent::index();
@@ -50,22 +51,24 @@ class LoginPsController extends \Bundle\Controller\Front\Member\LoginPsControlle
 
             // member 정보가 없을 경우 강제 회원 등록 처리
             // member 정보가 있을 경우 회원 정보 업데이트
-            if($memberVO == null)
+            if($memberVO == null){
                 $memberVO = $member->join($postValue);
-            else
+                $isNewMember = true;
+            }
+            $returnUrl = urldecode(MemberUtil::getLoginReturnURL());
+
+            $siteLink = new SiteLink();
+            $returnUrl = $siteLink->link($returnUrl);
+
+            $memId = $postValue["memId"];
+            $memPw = $postValue["memPw"];
+            
+            $member->login($memId, $memPw);
+            $storage = new SimpleStorage(Request::post()->all());
+            MemberUtil::saveCookieByLogin($storage);
+            $directMsg = 'parent.location.href=\'' . $returnUrl . '\'';
+            if(!$isNewMember)
             {
-                $returnUrl = urldecode(MemberUtil::getLoginReturnURL());
-
-                $siteLink = new SiteLink();
-                $returnUrl = $siteLink->link($returnUrl);
-
-                $memId = $postValue["memId"];
-                $memPw = $postValue["memPw"];
-                
-                $member->login($memId, $memPw);
-                $storage = new SimpleStorage(Request::post()->all());
-                MemberUtil::saveCookieByLogin($storage);
-                $directMsg = 'parent.location.href=\'' . $returnUrl . '\'';
                 if (MemberUtil::isLogin()) {
                     try {
                         \DB::begin_tran();
@@ -99,10 +102,12 @@ class LoginPsController extends \Bundle\Controller\Front\Member\LoginPsControlle
                 // 비밀번호 변경은 제외한다.
                 $requestParams["memPw"] = '';
                 //회원 번호는 세션에 저장 되어 있는 회원 번호로 가져옴
-                $requestParams['memNo'] = Session::get(MyPage::SESSION_MY_PAGE_MEMBER_NO, 0);
+                // $requestParams['memNo'] = Session::get(MyPage::SESSION_MY_PAGE_MEMBER_NO, 0);
+                $requestParams['memNo'] = $memberVO['memNo'];
                 $beforeMemberInfo = $myPage->getDataByTable(DB_MEMBER, $requestParams['memNo'], 'memNo');
                 $beforeSession['recommId'] = $beforeMemberInfo['recommId'];
                 $beforeSession['recommFl'] = $beforeMemberInfo['recommFl'];
+
                 // 회원정보 이벤트
                 $modifyEvent = \App::load('\\Component\\Member\\MemberModifyEvent');
                 $mallSno = \SESSION::get(SESSION_GLOBAL_MALL)['sno'] ? \SESSION::get(SESSION_GLOBAL_MALL)['sno'] : DEFAULT_MALL_NUMBER;
@@ -148,10 +153,8 @@ class LoginPsController extends \Bundle\Controller\Front\Member\LoginPsControlle
                 }
                 // $sitelink = new SiteLink();
                 // $returnUrl = $sitelink->link(Request::getReferer());
-
-                $this->js($directMsg);
-                        
             }
+            $this->js($directMsg);
         }
     }
 }
