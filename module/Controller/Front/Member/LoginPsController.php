@@ -43,15 +43,21 @@ class LoginPsController extends \Bundle\Controller\Front\Member\LoginPsControlle
             parent::index();
         }
         else{
+            // header 인증키 체크 로직 추가
+
             MemberUtil::logout();
 
             $member = \App::load('\\Component\\Member\\Member');
             $postValue = Request::post()->xss()->all();
             $memberVO = $member->getMember($postValue["memId"], 'memId');
-
-            // member 정보가 없을 경우 강제 회원 등록 처리
-            // member 정보가 있을 경우 회원 정보 업데이트
+            
+            // 회원 비밀번호 생성
+            $password = MemberUtil::getMemPwdBySSOLogin($postValue);
+            $postValue["memPw"] = $password;
+            
+            // member 정보가 없을 경우 강제 회원 등록 처리          
             if($memberVO == null){
+                $postValue["memPwRe"] = $postValue["memPw"];
                 $memberVO = $member->join($postValue);
                 $isNewMember = true;
             }
@@ -63,10 +69,12 @@ class LoginPsController extends \Bundle\Controller\Front\Member\LoginPsControlle
             $memId = $postValue["memId"];
             $memPw = $postValue["memPw"];
             
+            // 사용자 로그인 처리
             $member->login($memId, $memPw);
             $storage = new SimpleStorage(Request::post()->all());
             MemberUtil::saveCookieByLogin($storage);
             $directMsg = 'parent.location.href=\'' . $returnUrl . '\'';
+            // member 정보가 있을 경우 회원 정보 업데이트
             if(!$isNewMember)
             {
                 if (MemberUtil::isLogin()) {
@@ -131,8 +139,8 @@ class LoginPsController extends \Bundle\Controller\Front\Member\LoginPsControlle
                     \DB::rollback();
                     throw $e;
                 }
-                $myPage->sendEmailByPasswordChange($requestParams, Session::get($member::SESSION_MEMBER_LOGIN));
-                $myPage->sendSmsByAgreementFlag($beforeSession, Session::get($member::SESSION_MEMBER_LOGIN));
+                // $myPage->sendEmailByPasswordChange($requestParams, Session::get($member::SESSION_MEMBER_LOGIN));
+                // $myPage->sendSmsByAgreementFlag($beforeSession, Session::get($member::SESSION_MEMBER_LOGIN));
 
                 // 회원정보 수정 이벤트
                 $afterSession = Session::get($member::SESSION_MEMBER_LOGIN);
