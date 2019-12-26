@@ -22,7 +22,14 @@ namespace Component\Member\Util;
 class MemberUtil extends \Bundle\Component\Member\Util\MemberUtil
 {
     public static function getMemPwdBySSOLogin($params){
-        $password = 'MCK' . substr(gd_remove_special_char($params['cellPhone']),3,8) . '!@#';
+        // $password = 'MCK' . substr(gd_remove_special_char($params['cellPhone']),3,8) . '!@#';
+        $mail = explode('@', $params['email']);
+        $emailPassword;
+        if(strlen($mail[0]) > 10)
+            $emailPassword = substr($mail[0],0,9);
+        else
+            $emailPassword = $mail[0];
+        $password = 'MCK' . $emailPassword . '!@#';
         return $password;
     }
 }
