@@ -22,6 +22,7 @@ namespace Controller\Front\Member;
 use App;
 use Request;
 use Session;
+use Exception;
 use Component\Member\History;
 use Component\Attendance\AttendanceCheckLogin;
 use Component\Member\Exception\LoginException;
@@ -29,6 +30,7 @@ use Component\Member\Util\MemberUtil;
 use Component\SiteLink\SiteLink;
 use Component\Member\MyPage;
 use Framework\Debug\Exception\AlertOnlyException;
+use Framework\Debug\Exception\AlertBackException;
 use Framework\Debug\Exception\AlertRedirectException;
 use Framework\Object\DotNotationSupportStorage;
 use Framework\Object\SimpleStorage;
@@ -57,9 +59,23 @@ class LoginPsController extends \Bundle\Controller\Front\Member\LoginPsControlle
             
             // member 정보가 없을 경우 강제 회원 등록 처리          
             if($memberVO == null){
-                $postValue["memPwRe"] = $postValue["memPw"];
-                $memberVO = $member->join($postValue);
-                $isNewMember = true;
+                // validation logic 추가
+                try{
+                    $postValue["memPwRe"] = $postValue["memPw"];
+                    $postValue["appFl"] = 'y';
+                    $memberVO = $member->join($postValue);
+                    $isNewMember = true;
+                }
+                catch (\Throwable $e) {
+                    if (get_class($e) == Exception::class) {
+                        if ($e->getMessage()) {
+                            $this->js("alert('".$e->getMessage()."');location.href='http://mashop.co.kr';");
+                        }
+                    } else {
+                        throw $e;
+                    }
+                }
+
             }
             $returnUrl = urldecode(MemberUtil::getLoginReturnURL());
 
