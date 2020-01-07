@@ -63,6 +63,7 @@ class LoginPsController extends \Bundle\Controller\Front\Member\LoginPsControlle
                 try{
                     $postValue["memPwRe"] = $postValue["memPw"];
                     $postValue["appFl"] = 'y';
+                    $postValue["nickNm"] = $postValue["seq"];
                     $memberVO = $member->join($postValue);
                     $isNewMember = true;
                 }
@@ -131,6 +132,9 @@ class LoginPsController extends \Bundle\Controller\Front\Member\LoginPsControlle
                 $beforeMemberInfo = $myPage->getDataByTable(DB_MEMBER, $requestParams['memNo'], 'memNo');
                 $beforeSession['recommId'] = $beforeMemberInfo['recommId'];
                 $beforeSession['recommFl'] = $beforeMemberInfo['recommFl'];
+
+                // SEQ 추가
+                $requestParams["nickNm"] = $requestParams["seq"];
 
                 // 회원정보 이벤트
                 $modifyEvent = \App::load('\\Component\\Member\\MemberModifyEvent');
